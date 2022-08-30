@@ -1,4 +1,5 @@
 import { newArrayProto } from "./array";
+import Dep from "./dep";
 
 // 将数据data变成可观察的
 class Observe{
@@ -32,16 +33,25 @@ class Observe{
 // 数据劫持
 export function defineReactive(target,key,value){
     observe(value);// 递归实现深度属性劫持,对所有对象都进行数据劫持
+    
+    let dep=new Dep();// 每一个属性都有一个 dep
+    
     Object.defineProperty(target,key,{
         get(){
-            console.log('getKey',key);
+            // console.log('getKey',key);
+            // 只能在模板中取值时才会做依赖收集
+            if(Dep.target){
+                dep.depend();// 让该属性收集器记住当前的 watcher(闭包)
+            }
             return value;
         },
         set(newValue){
             if(newValue===value) return;
             observe(newValue);// 赋值的是对象,则再次进行代理
-            console.log('setKey',key);
+            // console.log('setKey',key);
             value=newValue;
+            // 通知更新
+            dep.notify();
         }
     });
 }

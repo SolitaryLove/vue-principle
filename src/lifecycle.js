@@ -1,3 +1,4 @@
+import Watcher from "./observe/watcher";
 import { createElementVNode, createTextVNode } from "./vdom";
 
 // 创建真实节点的属性
@@ -41,7 +42,7 @@ function patch(oldVNode,vnode){
         const elm=oldVNode;// 获取真实元素
         const parentElm=elm.parentNode;// 获取父元素
         let newElm=createElm(vnode);// 创建并获取新元素
-        console.log(newElm)
+        // console.log(newElm)
         parentElm.insertBefore(newElm,elm.nextSibling);// 将新元素插入到旧元素之前
         parentElm.removeChild(elm);// 删除旧元素
         
@@ -53,7 +54,7 @@ function patch(oldVNode,vnode){
 
 export function initLifecycle(Vue){
     Vue.prototype._update=function(vnode){
-        console.log('update',vnode);
+        // console.log('update',vnode);
         const vm=this;
         const el=vm.$el;
         // console.log(el);
@@ -91,9 +92,9 @@ export function mountComponent(vm,el){
     2.根据虚拟 DOM 产生真实 DOM
     vm._update();// 虚拟节点 → 真实节点
     3.插入到 el 元素中 */
-    /* const updateComponent=()=>{
+    const updateComponent=()=>{
         vm._update(vm._render());
-    } */
-    vm._update(vm._render());
-    
+    }
+    const watch=new Watcher(vm,updateComponent,true);// true标识是一个渲染过程
+    console.log(watch);
 }
