@@ -1,6 +1,7 @@
 import { compileToFunction } from "./compiler";
-import { mountComponent } from "./lifecycle";
+import { callHook, mountComponent } from "./lifecycle";
 import { initState } from "./state";
+import { mergeOptions } from "./utils";
 
 // 初始化
 export function initMixin(Vue){ // 给Vue增加init方法
@@ -8,10 +9,21 @@ export function initMixin(Vue){ // 给Vue增加init方法
         const vm=this;
 
         // 以$开头的方法或属性表示挂载在实例上
-        vm.$options=options;// 获取用户的配置
+        // vm.$options=options;// 获取用户的配置
+
+        // 合并配置对象(Vue.mixin 全局混入 + $options 用户配置对象)
+        // 使用 mixin 我们定义的全局指令和过滤器...都会挂载到 Vue 实例上
+        vm.$options=mergeOptions(this.constructor.options,options);
+        // console.log(vm.$options);
+
+        // 调用生命周期钩子-beforeCreated
+        callHook(vm,'beforeCreate'); // 内部调用的 beforeCreate 写错了就不执行
 
         // 初始化状态
         initState(vm);
+
+        // 调用生命周期钩子-created
+        callHook(vm,'created')
 
         // 元素挂载
         if(options.el){

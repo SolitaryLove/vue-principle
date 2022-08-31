@@ -46,7 +46,7 @@ class Watcher{// 不同的组件有不同的 watcher
     // 调用渲染
     run(){
         this.get();
-        console.log('run');
+        // console.log('run');
     }
 }
 

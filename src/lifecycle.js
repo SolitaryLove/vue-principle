@@ -96,5 +96,15 @@ export function mountComponent(vm,el){
         vm._update(vm._render());
     }
     const watch=new Watcher(vm,updateComponent,true);// true标识是一个渲染过程
-    console.log(watch);
+    // console.log(watch);
+}
+
+
+// 调用配置好的钩子函数
+export function callHook(vm,hook){
+    const handlers=vm.$options[hook];
+    // console.log(handlers);
+    if(handlers){
+        handlers.forEach(handler=>handler.call(vm));
+    }
 }

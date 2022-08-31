@@ -22,6 +22,7 @@ methods.forEach(method=>{
         const result=oldArrayProto[method].call(this,...args);
         // 需要对数组中新增的元素进行劫持
         let inserted;
+        // Observe 的实例
         let ob=this.__ob__;
         switch(method){
             case 'push':
@@ -33,10 +34,12 @@ methods.forEach(method=>{
             default:
                 break;
         }
-        if(inserted){// 对新增的内容两次进行观测
+        if(inserted){// 对新增的内容再次进行观测
             ob.observeArray(inserted);
         }
-        console.log('method',method);
+        // console.log('method',method);
+
+        ob.dep.notify();// 数组变化了通知对应的 watcher 实现更新逻辑
         return result;
     }
 })
