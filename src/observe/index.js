@@ -60,7 +60,7 @@ export function defineReactive(target,key,value){
     Object.defineProperty(target,key,{
         get(){
             // console.log('getKey',key);
-            // 只能在模板中取值时才会做依赖收集(渲染取值时触发getter完成依赖收集)
+            // 只能初始化在模板中取值时才会做依赖收集(渲染取值时触发getter完成依赖收集)
             if(Dep.target){
                 dep.depend();// 让该属性收集器记住当前的 watcher(闭包)
 

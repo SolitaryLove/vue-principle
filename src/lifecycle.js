@@ -95,7 +95,8 @@ export function mountComponent(vm,el){
     const updateComponent=()=>{
         vm._update(vm._render());
     }
-    const watch=new Watcher(vm,updateComponent,true);// true标识是一个渲染过程
+    // 创建渲染 watcher
+    const watcher=new Watcher(vm,updateComponent,true);// true标识是一个渲染过程
     // console.log(watch);
 }
 

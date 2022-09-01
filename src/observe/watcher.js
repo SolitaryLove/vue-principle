@@ -1,4 +1,4 @@
-import Dep from "./dep";
+import Dep, { popTarget, pushTarget } from "./dep";
 
 let id=0;// 唯一标识
 
@@ -19,7 +19,14 @@ class Watcher{// 不同的组件有不同的 watcher
         this.getter=fn;// getter意味着调用这个函数可以发生取值操作
         this.deps=[];// 后续实现计算属性和一些清楚工作需要用到
         this.depsId=new Set();// 用于去重
-        this.get();// new 时默认调用
+
+        // 针对 computed 的 watcher 进行处理
+        this.lazy=options.lazy;
+        this.dirty=this.lazy;// 脏值标识
+        // 如果是脏值就不用重新计算,直接使用缓存值
+        this.dirty?undefined:this.get();
+        this.vm=vm;// 缓存实例
+        // this.get();// new 时默认调用
     }
     addDep(dep){
         // 1个组件对应多个属性,重复的属性不用记录
@@ -31,17 +38,48 @@ class Watcher{// 不同的组件有不同的 watcher
             dep.addSub(this);
         }
     }
+    // 让 watcher 的中 dep.depend()
+    depend(){
+        let i=this.deps.length;
+        while(i--){
+            // 让计算属性 watcher 也收集渲染 watcher
+            this.deps[i].depend();
+            // this.deps[i]<dep>.depend => Dep.target<watcher>.addDep(dep)
+            // => this<watcher>.deps.push(dep) => dep.addSub(this<watcher>)
+            // => this<dep>.subs.push(wathcher)
+        }
+    }
+    // 求值(计算属性)
+    evaluate(){
+        this.value=this.get();// 获取到 computed get() 的返回值
+        this.dirty=false;// 并且要更改脏值标识
+    }
     // 渲染: ast语法树 → 虚拟DOM → 真实DOM
     get(){
         // 将当前 watcher 记录到 Dep.target, Dep.target 是全局唯一的
-        Dep.target=this;// 静态属性
+        /* Dep.target=this;// 静态属性
         this.getter();// vm._update(vm._render)会去 vm 上取值
-        Dep.target=null;// 渲染完毕后就清空
+        Dep.target=null;// 渲染完毕后就清空 */
+        
+        pushTarget(this);// 将当前 watcher 入栈
+        // {lazy:true}时则为 computed 的 get()
+        let value=this.getter.call(this.vm);// vm._update(vm._render)会去 vm 上取值
+        popTarget();// 将当前 watcher 入栈
+
+        return value
     }
     // 更新
     update(){
         // this.get();
-        queueWatcher(this);// 把当前 watcher 暂存起来
+
+        // 如果是计算属性
+        if(this.lazy){
+            // 依赖的值变化了,就标识计算属性是脏值了
+            this.dirty=true;
+        }else{
+            queueWatcher(this);// 把当前 watcher 暂存起来
+        }
+        
     }
     // 调用渲染
     run(){
@@ -68,11 +106,12 @@ function queueWatcher(watcher){
         has[id]=true;
         // 不管 update 执行多少次,但是最终只执行一轮刷新操作
         if(!pending){
-            nextTick(flushSchedulerQueue,0);
+            nextTick(flushSchedulerQueue);
             pending=true;
         }
     }
 }
+
 
 // 批处理,多次执行合成为一次
 let callbacks=[];// 队列

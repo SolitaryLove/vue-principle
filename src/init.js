@@ -19,7 +19,7 @@ export function initMixin(Vue){ // 给Vue增加init方法
         // 调用生命周期钩子-beforeCreated
         callHook(vm,'beforeCreate'); // 内部调用的 beforeCreate 写错了就不执行
 
-        // 初始化状态
+        // 初始化状态,初始化计算属性 computed 和 侦听器 watch
         initState(vm);
 
         // 调用生命周期钩子-created

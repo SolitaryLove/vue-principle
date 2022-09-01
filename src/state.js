@@ -1,10 +1,17 @@
 import { observe } from "./observe";
+import Dep from "./observe/dep";
+import Watcher from "./observe/watcher";
 
 export function initState(vm){
     const opts=vm.$options;// 获取配置对象
     if(opts.data){
         initData(vm);
     }
+
+    if(opts.computed){
+        initComputed(vm);
+    }
+
 }
 function initData(vm){
     // data → function | object
@@ -32,4 +39,52 @@ function proxy(vm,target,key){
             vm[target][key]=newValue;
         }
     })
+}
+
+// 计算属性初始化
+function initComputed(vm){
+    const computed=vm.$options.computed;
+
+    // 将计算属性 watcher 保存到 vm 上
+    const watchers=vm._computedWatchers={};
+
+    for(let key in computed){
+        let userDef=computed[key];
+        
+        // 我们需要监控计算属性中 get 的变化
+        let computedGetMethod=typeof userDef==='function'?userDef:userDef.get;
+        
+        // 如果直接 new Wather 默认就会执行 fn,将计算属性和 watcher 对应起来
+        watchers[key]=new Watcher(vm,computedGetMethod,{lazy:true});
+
+        defineComputed(vm,key,userDef);
+    }
+}
+// 挂载计算属性到实例上
+function defineComputed(target,key,userDef){
+    // const getter=typeof userDef==='function'?userDef:userDef.get;
+    const setter=userDef.setter||(()=>{});
+    // 可以通过实例拿到对应的属性
+    Object.defineProperty(target,key,{
+        get:createComputedGetter(key),
+        set:setter
+    });
+}
+// 计算属性根本不会收集依赖,只会让自己的依赖属性去收集依赖
+function createComputedGetter(key){
+    // 检测是否要执行这个 getter
+    return function(){
+        // 获取到对应计算属性的 watcher
+        const watcher=this._computedWatchers[key];
+        if(watcher.dirty){
+            // 如果是脏的就去执行用户传入的函数
+            watcher.evaluate();// 求值后 dirty 变为 false,下次就不求值了
+        }
+        // 计算属性出栈后还有渲染 watcher,应该让计算属性 watcher 里面的属性也去收集上层的渲染 wathcer
+        if(Dep.target){
+            watcher.depend()
+        }
+        return watcher.value;
+    }
+
 }
