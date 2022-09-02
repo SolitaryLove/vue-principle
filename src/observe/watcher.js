@@ -3,7 +3,7 @@ import Dep, { popTarget, pushTarget } from "./dep";
 let id=0;// 唯一标识
 
 // 1)当我们创建渲染 watcher 的时候我们会把当前的渲染 watcher 放到 Dep.target 上
-// 2)调用_render() 会取值, 触发 get
+// 2)调用 _render() 会取值, 触发 get
 
 // 观察者模式
 // 每个属性都有一个 dep(被观察者), watcher就是观察者(属性变化了会通知观察者更新)
@@ -13,20 +13,33 @@ class Watcher{// 不同的组件有不同的 watcher
         fn:render函数 
         options:是一个渲染 watcher
     */
-    constructor(vm,fn,options){
+    constructor(vm,exprOrFn,options,cb){
         this.id=id++;
         this.renderWatcher=options;
-        this.getter=fn;// getter意味着调用这个函数可以发生取值操作
+        
+        if(typeof exprOrFn==='string'){
+            this.getter=function(){
+                return vm[exprOrFn];// vm.firstname
+            }
+        }else{
+            this.getter=exprOrFn;// getter意味着调用这个函数可以发生取值操作
+        }
+
+        this.cb=cb;
+        this.user=options.user;// 标识是否是用户自己的 watcher
+        
         this.deps=[];// 后续实现计算属性和一些清楚工作需要用到
         this.depsId=new Set();// 用于去重
 
         // 针对 computed 的 watcher 进行处理
         this.lazy=options.lazy;
         this.dirty=this.lazy;// 脏值标识
+
         // 如果是脏值就不用重新计算,直接使用缓存值
-        this.dirty?undefined:this.get();
+        this.value=this.dirty?undefined:this.get();
         this.vm=vm;// 缓存实例
         // this.get();// new 时默认调用
+
     }
     addDep(dep){
         // 1个组件对应多个属性,重复的属性不用记录
@@ -71,7 +84,6 @@ class Watcher{// 不同的组件有不同的 watcher
     // 更新
     update(){
         // this.get();
-
         // 如果是计算属性
         if(this.lazy){
             // 依赖的值变化了,就标识计算属性是脏值了
@@ -79,12 +91,16 @@ class Watcher{// 不同的组件有不同的 watcher
         }else{
             queueWatcher(this);// 把当前 watcher 暂存起来
         }
-        
     }
     // 调用渲染
     run(){
-        this.get();
+        let oldValue=this.value;// 旧值
+        let newValue=this.get();// 新值
         // console.log('run');
+        if(this.user){
+            // 执行 watch 中用户设置的回调
+            this.cb.call(this.vm,oldValue,newValue);
+        }
     }
 }
 

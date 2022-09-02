@@ -12,7 +12,13 @@ export function initState(vm){
         initComputed(vm);
     }
 
+    if(opts.watch){
+        initWatch(vm);
+    }
+
 }
+
+// 数据初始化
 function initData(vm){
     // data → function | object
     let data=vm.$options.data;
@@ -28,7 +34,6 @@ function initData(vm){
     }
     
 }
-
 // 数据代理 vm_data → vm
 function proxy(vm,target,key){
     Object.defineProperty(vm,key,{
@@ -40,6 +45,7 @@ function proxy(vm,target,key){
         }
     })
 }
+
 
 // 计算属性初始化
 function initComputed(vm){
@@ -87,4 +93,28 @@ function createComputedGetter(key){
         return watcher.value;
     }
 
+}
+
+
+// 侦听器初始化
+function initWatch(vm){
+    let watch=vm.$options.watch;
+    for(let key in watch){
+        const handler=watch[key];// 字符串|数组|函数
+        if(Array.isArray(handler)){
+            for(let i=0;i<handler.length;i++){
+                createWatcher(vm,key,handler[i]);
+            }
+        }else{
+            createWatcher(vm,key,handler);
+        }
+    }
+}
+function createWatcher(vm,key,handler){
+    // handler → 字符串|函数
+    if(typeof handler==='string'){
+        handler=vm[handler];
+    }
+    // key → exprOrFn
+    return vm.$watch(key,handler);
 }
