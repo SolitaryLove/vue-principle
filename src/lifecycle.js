@@ -1,56 +1,7 @@
 import Watcher from "./observe/watcher";
 import { createElementVNode, createTextVNode } from "./vdom";
+import { patch } from "./vdom/patch";
 
-// 创建真实节点的属性
-function patchProps(el,props){
-    for(let key in props){
-        // 处理 style 属性
-        if(key==='style'){
-            for(let styleName in props.style){
-                el.style[styleName]=props.style[styleName];
-            }
-        }else{
-            el.setAttribute(key,props[key]);
-        }
-        
-    }
-}
-
-// 创建真实节点
-function createElm(vnode){
-    let {tag,data,children,text}=vnode;
-    if(typeof tag==='string'){// 标签元素
-        // 将真实节点和虚拟节点对应起来
-        vnode.el=document.createElement(tag);
-        // 更新节点属性
-        patchProps(vnode.el,data);
-        // 递归生成子节点
-        children.forEach(child=>{
-            vnode.el.appendChild(createElm(child));
-        });
-    }else{// 文本元素
-        vnode.el=document.createTextNode(text);
-    }
-    return vnode.el;// 返回真实节点
-}
-
-// 虚拟 DOM → 真实 DOM
-function patch(oldVNode,vnode){
-    // 初渲染流程
-    const isRealElement=oldVNode.nodeType;
-    if(isRealElement){
-        const elm=oldVNode;// 获取真实元素
-        const parentElm=elm.parentNode;// 获取父元素
-        let newElm=createElm(vnode);// 创建并获取新元素
-        // console.log(newElm)
-        parentElm.insertBefore(newElm,elm.nextSibling);// 将新元素插入到旧元素之前
-        parentElm.removeChild(elm);// 删除旧元素
-        
-        return newElm;
-    }else{
-        // diff 算法
-    }
-}
 
 export function initLifecycle(Vue){
     Vue.prototype._update=function(vnode){
@@ -60,7 +11,15 @@ export function initLifecycle(Vue){
         // console.log(el);
         // patch 既有初始化的功能,又有更新的功能
         // 用 vnode 创建新的节点替换 el(根节点 DOM)
-        vm.$el=patch(el,vnode);
+        // vm.$el=patch(el,vnode);
+
+        const prevVnode=vm._vnode;
+        vm._vnode=vnode;// 保存上一次生成的虚拟dom
+        if(prevVnode){// 已完成初渲染
+            vm.$el=patch(prevVnode,vnode);// 旧虚拟节点与新虚拟节点
+        }else{
+            vm.$el=patch(el,vnode);// 挂载元素与新虚拟节点
+        }
     }
 
     // _c('div',{},...children)
@@ -85,7 +44,7 @@ export function initLifecycle(Vue){
 }
 
 export function mountComponent(vm,el){
-    // 将 el 挂载在实例上
+    // 将 el(真实DOM) 挂载在实例上
     vm.$el=el;
     /* 1.调用 render 方法产生虚拟 DOM
     vm._render();// vm.$options.render → 虚拟节点

@@ -1,6 +1,6 @@
 import { observe } from "./observe";
 import Dep from "./observe/dep";
-import Watcher from "./observe/watcher";
+import Watcher, { nextTick } from "./observe/watcher";
 
 export function initState(vm){
     const opts=vm.$options;// 获取配置对象
@@ -117,4 +117,18 @@ function createWatcher(vm,key,handler){
     }
     // key → exprOrFn
     return vm.$watch(key,handler);
+}
+
+
+
+export function initStateMixin(Vue){
+    Vue.prototype.$nextTick=nextTick;
+
+    Vue.prototype.$watch=function(exprOrFn,cb){
+        // console.log(exprOrFn,cb);
+        // exprOrFn → firstname:string 
+        // cb → ()=>vm.firstname
+        // firstname 的值变化了,直接执行 cb 函数即可
+        new Watcher(this,exprOrFn,{user:true},cb);
+    }
 }
